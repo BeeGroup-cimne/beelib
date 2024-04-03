@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "beeutils"
+version = "0.0.1"
+authors = [
+  { name="Eloi Gabaldon", email="egabaldon@cimne.upc.edu" },
+]
+description = "Beegroup utils package"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    'happybase',
+    'kafka-python',
+    'pycryptodome',
+    'neo4j',
+    'morph_kgc'
+]
+
+[project.urls]
+Homepage = "https://correu.cimne.upc.edu"
+Issues = "https://correu.cimne.upc.edu"
