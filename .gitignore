@@ -1,3 +1,5 @@
-.venv
+venv/
 build
 *.egg-info
+.idea/
+.DS_Store
