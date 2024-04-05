@@ -15,8 +15,8 @@ def __get_h_table__(hbase, table_name, cf=None):
     return hbase.table(table_name)
 
 
-def save_to_hbase(documents, h_table_name, hbase_connection, cf_mapping, row_fields=None, batch_size=1000):
-    hbase = happybase.Connection(**hbase_connection)
+def save_to_hbase(documents, h_table_name, hbase_conf, cf_mapping, row_fields=None, batch_size=1000):
+    hbase = happybase.Connection(**hbase_conf)
     table = __get_h_table__(hbase, h_table_name, {cf: {} for cf, _ in cf_mapping})
     h_batch = table.batch(batch_size=batch_size)
     row_auto = 0

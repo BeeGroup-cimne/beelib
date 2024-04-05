@@ -4,8 +4,8 @@ import pickle
 import sys
 
 
-def create_kafka_producer(config):
-    servers = [f"{config['kafka']['host']}:{config['kafka']['port']}"]
+def create_kafka_producer(kafka_conf):
+    servers = [f"{kafka_conf['host']}:{kafka_conf['port']}"]
     return KafkaProducer(bootstrap_servers=servers, value_serializer=lambda v: b64encode(pickle.dumps(v)))
 
 
