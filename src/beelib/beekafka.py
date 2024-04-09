@@ -19,7 +19,7 @@ def __json_encoder__(v):
 
 
 def __json_decoder__(v):
-    return json.loads(v).decode("utf-8")
+    return json.loads(v.decode("utf-8"))
 
 
 def __plain_decoder_encoder(v):
