@@ -15,11 +15,11 @@ def __pickle_encoder__(v):
 
 
 def __json_encoder__(v):
-    return json.dumps(v)
+    return json.dumps(v).encode("utf-8")
 
 
 def __json_decoder__(v):
-    return json.loads(v)
+    return json.loads(v).decode("utf-8")
 
 
 def __plain_decoder_encoder(v):
