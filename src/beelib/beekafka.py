@@ -1,5 +1,4 @@
 import json
-
 from kafka import KafkaProducer, KafkaConsumer
 from base64 import b64encode, b64decode
 import pickle
