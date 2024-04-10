@@ -22,20 +22,21 @@ def save_to_hbase(documents, h_table_name, hbase_conf, cf_mapping, row_fields=No
     row_auto = 0
     uid = uuid.uuid4()
     for d in documents:
+        d_ = d.copy()
         if not row_fields:
             row = f"{uid}~{row_auto}"
             row_auto += 1
         else:
-            row = "~".join([str(d[f]) if f in d else "" for f in row_fields])
+            row = "~".join([str(d_.pop(f)) if f in d_ else "" for f in row_fields])
         values = {}
         for cf, fields in cf_mapping:
             if fields == "all":
-                for c, v in d.items():
+                for c, v in d_.items():
                     values["{cf}:{c}".format(cf=cf, c=c)] = str(v)
             elif isinstance(fields, list):
                 for c in fields:
-                    if c in d:
-                        values["{cf}:{c}".format(cf=cf, c=c)] = str(d[c])
+                    if c in d_:
+                        values["{cf}:{c}".format(cf=cf, c=c)] = str(d_[c])
             else:
                 raise Exception("Column mapping must be a list of fields or 'all'")
         h_batch.put(str(row), values)
