@@ -5,11 +5,11 @@ import pickle
 import sys
 
 
-def __pickle_decoder__(v):
+def __pickle_encoder__(v):
     return b64encode(pickle.dumps(v))
 
 
-def __pickle_encoder__(v):
+def __pickle_decoder__(v):
     return pickle.loads(b64decode(v))
 
 
