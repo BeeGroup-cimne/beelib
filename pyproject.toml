@@ -20,7 +20,8 @@ dependencies = [
     'kafka-python',
     'pycryptodome',
     'neo4j',
-    'morph_kgc'
+    'morph_kgc',
+    'pydruid'
 ]
 
 [project.urls]
