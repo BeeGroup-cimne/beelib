@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 
 def read_config(conf_file=None):
@@ -7,6 +8,7 @@ def read_config(conf_file=None):
         conf = json.load(open(conf_file))
     else:
         conf = json.load(open(os.environ['CONF_FILE']))
-    if 'neo4j' in conf and 'auth' in conf['neo4j']:
-        conf['neo4j']['auth'] = tuple(conf['neo4j']['auth'])
+    for k in [re.match(r'neo4j.*', k).string for k in conf.keys() if re.match(r'neo4j.*', k) is not None]:
+        if 'auth' in conf[k]:
+            conf[k]['auth'] = tuple(conf[k]['auth'])
     return conf

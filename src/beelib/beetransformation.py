@@ -40,7 +40,7 @@ def save_to_neo4j(g, config):
 
 def print_graph(g, config):
     content = __transform_to_str__(g)
-    if config['print_file'] is not None:
+    if 'print_file' in config and config['print_file']:
         with open(config['print_file'], "w") as f:
             f.write(content)
     else:
