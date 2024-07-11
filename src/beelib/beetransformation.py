@@ -1,3 +1,6 @@
+import hashlib
+from urllib.parse import quote
+
 from neo4j import GraphDatabase
 import json
 import morph_kgc
@@ -45,3 +48,10 @@ def print_graph(g, config):
             f.write(content)
     else:
         print(g.serialize(format="ttl"))
+
+
+def create_hash(uri):
+    uri = quote(uri, safe=':/#')
+    uri = uri.encode()
+    m = hashlib.sha256(uri)
+    return m.hexdigest()
