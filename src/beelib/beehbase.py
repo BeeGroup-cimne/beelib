@@ -1,5 +1,11 @@
 import uuid
 import happybase
+import re
+
+
+def get_tables(str_filter, hbase_conf):
+    hbase = happybase.Connection(**hbase_conf)
+    return [x.decode() for x in hbase.tables() if re.match(str_filter, x.decode())]
 
 
 def __get_h_table__(hbase, table_name, cf=None):
