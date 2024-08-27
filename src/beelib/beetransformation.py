@@ -1,4 +1,5 @@
 import hashlib
+import tempfile
 from urllib.parse import quote
 
 from neo4j import GraphDatabase
@@ -9,10 +10,10 @@ import os
 
 def __map_to_ttl__(data, mapping_file):
     morph_config = "[DataSource1]\nmappings:{mapping_file}\nfile_path: {d_file}"
-    with open("tmp.json", "w") as d_file:
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, dir=".") as d_file:
         json.dump({k: v for k, v in data.items()}, d_file)
     g_rdflib = morph_kgc.materialize(morph_config.format(mapping_file=mapping_file, d_file=d_file.name))
-    os.unlink("tmp.json")
+    os.unlink(d_file.name)
     return g_rdflib
 
 
