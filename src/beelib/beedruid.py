@@ -53,6 +53,7 @@ def get_timeseries_from_druid(d_hash, druid_connection, druid_datasource, ts_ini
 
 
 def harmonize_for_druid(data, timestamp_key, value_key, hash_key, property_key, is_real, freq):
+    """harmonizes the timeseries to be sent to druid"""
     to_save = {
         "start": int(data[timestamp_key].timestamp()),
         "end": int((data[timestamp_key] + isodate.parse_duration(freq)).timestamp() - 1),
@@ -65,6 +66,7 @@ def harmonize_for_druid(data, timestamp_key, value_key, hash_key, property_key, 
 
 
 def check_all_ingested(check, druid_connection, druid_datasource):
+    """checks if the ingested value is in the database"""
     if not check:
         return
     utc_dt = datetime.fromtimestamp(check['start'], tz=timezone.utc)
