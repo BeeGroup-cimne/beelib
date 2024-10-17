@@ -21,7 +21,9 @@ dependencies = [
     'pycryptodome',
     'neo4j',
     'morph_kgc',
-    'pydruid'
+    'pydruid',
+    'pandas',
+    'isodate'
 ]
 
 [project.urls]
