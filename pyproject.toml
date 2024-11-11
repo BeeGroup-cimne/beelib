@@ -23,7 +23,8 @@ dependencies = [
     'morph_kgc',
     'pydruid',
     'pandas',
-    'isodate'
+    'isodate',
+    'influxdb-client'
 ]
 
 [project.urls]
