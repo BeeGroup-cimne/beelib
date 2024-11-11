@@ -32,6 +32,8 @@ def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end):
     client = connect_influx(influx_connection)
     query_api = client.query_api()
     df = query_api.query_data_frame(query)
+    if df.empty:
+        return pd.DataFrame()
     df['end'] = pd.to_datetime(df['end'], unit="s").dt.tz_localize("UTC")
     df.rename(columns={"_time": "start"}, inplace=True)
     df = df[["start", "end", "isReal", "value"]]
