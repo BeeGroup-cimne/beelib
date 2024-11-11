@@ -9,7 +9,8 @@ def connect_influx(influx_connection):
     client = influxdb_client.InfluxDBClient(
         url=influx_connection['connection']['url'],
         org=influx_connection['connection']['org'],
-        token=influx_connection['connection']['token']
+        token=influx_connection['connection']['token'],
+        timeout=60000
     )
     return client
 
