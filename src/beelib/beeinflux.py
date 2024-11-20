@@ -24,10 +24,10 @@ def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end):
         |> range(start: time(v:{start}), stop: time(v:{int(end)}))
         |> filter(fn: (r) => r["_measurement"] == "{influx_connection['measurement']}")
         |> filter(fn: (r) => r["hash"] == "{d_hash}")
-        |> filter(fn: (r) => contains(value: r["_field"], set: ["end", "isReal", "value"]))
-        |> aggregateWindow(every: duration(v: {aggregation_window}), fn: first, createEmpty: false)
         |> timeShift(duration: -duration(v: {aggregation_window}))
         |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        |> filter(fn: (r) => r["is_null"]==0.0)
+        |> keep(columns: ["_time", "value", "end", "isReal"])
     """
     client = connect_influx(influx_connection)
     query_api = client.query_api()
