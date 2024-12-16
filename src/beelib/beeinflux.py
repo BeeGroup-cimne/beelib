@@ -15,6 +15,12 @@ def connect_influx(influx_connection):
     return client
 
 
+def run_query(influx_connection, query):
+    client = connect_influx(influx_connection)
+    query_api = client.query_api()
+    return query_api.query_data_frame(query)
+
+
 def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end):
     aggregation_window = int(isodate.parse_duration(freq).total_seconds() * 10**9)
     start = int(ts_ini.timestamp()) * 10**9
