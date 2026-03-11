@@ -124,3 +124,12 @@ Submodule to transform data to RDF and store it into neo4j
     - *g*: a RDF graph in `rdflib` object
     - *config:* the config file, can be an empty dict {} used only for mimetizing with `map_and_save` 
       or contain a `print_file` field to store the RDF in a file instead
+
+## Authors
+
+- Arian Huapaya - ahuapaya@cimne.upc.edu
+- Núria Salvador - nsalvador@cimne.upc.edu
+- Eloi Gabaldón - egabaldon@cimne.upc.edu
+- Jordi Carbonell - jordi@cimne.upc.edu
+
+Copyright (c) 2026 Arian Huapaya, Núria Salvador, Eloi Gabaldon, Jordi Carbonell
