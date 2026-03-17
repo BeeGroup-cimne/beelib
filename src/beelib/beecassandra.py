@@ -33,7 +33,7 @@ def __create_table__(session, table_name, options):
     row_def = options['partition_rows']['rows'] + options['sort_row']['rows']
     type_def = options['partition_rows']['types'] + options['sort_row']['types']
     rows = ",".join([f"{x[0]} {x[1]}" for x in zip(row_def, type_def)])
-    colum_def = [k for k, _ in options['columns']]
+    colum_def = [k for k, _ in options['columns'].items()]
     columns = ",".join([f"{c} map<text, text>" for c in colum_def])
     query_create_taula = f"""
         CREATE TABLE IF NOT EXISTS {table_name}(
@@ -50,7 +50,7 @@ def __create_table__(session, table_name, options):
 def save_to_cassandra(documents, table_name, cassandra_connection, options):
     session = get_session(cassandra_connection)
     __create_table__(session, table_name, options)
-    key_columns = [k for k, v in options['columns']]
+    key_columns = [k for k, _ in options['columns'].items()]
     table_columns = options['partition_rows']['rows'] + options['sort_row']['rows'] + key_columns
     keys_query = ",".join(table_columns)
     rows_values = ",".join(["?" for _ in table_columns])
