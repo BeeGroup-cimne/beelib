@@ -47,6 +47,7 @@ def __create_table__(session, table_name, options):
     except Exception as e:
         print(f"Error creant la taula: {e}")
 
+
 def save_to_cassandra(documents, table_name, cassandra_connection, options):
     session = get_session(cassandra_connection)
     __create_table__(session, table_name, options)
@@ -129,6 +130,7 @@ def get_cassandra_data(table_name, fix_key, start_key, end_key, sort_key_start, 
         requests_db.append(fix_key)
 
     session.default_fetch_size = batch_size
+    current_batch = []
     for req in requests_db:
         if req:
             where = " AND ".join([f"{k}{v['op'] if 'op' in v else '='}{__parse_query_parameters__(v['v'])}" for k,v in req.items()])
@@ -141,17 +143,23 @@ def get_cassandra_data(table_name, fix_key, start_key, end_key, sort_key_start, 
 
         statement = SimpleStatement(query, fetch_size=batch_size)
         result_set = session.execute(statement)
-        current_batch = []
-        for row in result_set:
-            d = row._asdict()
-            info = d.pop("info")
-            d.update(info)
-            current_batch.append(row)
-
-        if len(current_batch) == batch_size:
-            yield current_batch
-            current_batch = []
-
-        if current_batch:
-            yield current_batch
+        more = True
+        while more:
+            current_page = result_set.current_rows
+            for row in current_page:
+                d = row._asdict()
+                info = d.pop("info")
+                d.update(info)
+                current_batch.append(row)
+                if len(current_batch) == batch_size:
+                    yield current_batch
+                    current_batch = []
+            punter = result_set.paging_state
+            if punter:
+                result_set = session.execute(statement, paging_state=punter)
+            else:
+                break
     session.shutdown()
+    if current_batch:
+        yield current_batch
+
