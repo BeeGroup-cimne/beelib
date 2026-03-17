@@ -24,7 +24,8 @@ dependencies = [
     'pydruid',
     'pandas',
     'isodate',
-    'influxdb-client'
+    'influxdb-client',
+    'cassandra-driver'
 ]
 
 [project.urls]
