@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import influxdb_client
 import isodate
 import pandas as pd
+import certifi
 
 
 def connect_influx(influx_connection):
@@ -10,6 +11,7 @@ def connect_influx(influx_connection):
         url=influx_connection['connection']['url'],
         org=influx_connection['connection']['org'],
         token=influx_connection['connection']['token'],
+        ssl_ca_cert=certifi.where(),
         timeout=60000
     )
     return client
