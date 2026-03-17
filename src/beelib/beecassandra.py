@@ -3,6 +3,7 @@ from cassandra.cluster import Cluster
 from cassandra.concurrent import execute_concurrent_with_args
 from cassandra.query import SimpleStatement
 
+
 def get_session(cassandra_connection):
     auth_provider = PlainTextAuthProvider(username=cassandra_connection['auth']['username'], password=cassandra_connection['auth']['password'])
     cluster = Cluster(cassandra_connection['connection']['contact_points'], port=cassandra_connection['connection']['port'], auth_provider=auth_provider, connect_timeout=10)
@@ -19,8 +20,8 @@ def __create_table__(session, table_name, options):
                         'types': ['text', 'int']
                     },
                     'sort_row': {
-                        'row': 'timestamp',
-                        'type': 'timestamp'
+                        'rows': ['timestamp', 'tag'],
+                        'types': ['timestamp', 'int]
                     },
                     'columns': {
                         'column_name': ['column', 'column', 'all'],
@@ -29,8 +30,8 @@ def __create_table__(session, table_name, options):
                 }
 
     """
-    row_def = options['partition_rows']['rows'] + [options['sort_row']['row']]
-    type_def = options['partition_rows']['types'] + [options['sort_row']['type']]
+    row_def = options['partition_rows']['rows'] + options['sort_row']['rows']
+    type_def = options['partition_rows']['types'] + options['sort_row']['types']
     rows = ",".join([f"{x[0]} {x[1]}" for x in zip(row_def, type_def)])
     colum_def = [k for k, _ in options['columns']]
     columns = ",".join([f"{c} map<text, text>" for c in colum_def])
@@ -38,33 +39,43 @@ def __create_table__(session, table_name, options):
         CREATE TABLE IF NOT EXISTS {table_name}(
             {rows}, 
             {columns}, 
-            PRIMARY KEY (({",".join(options['partition_rows']['rows'])}), {options['sort_row']['row']})
-        ) WITH CLUSTERING ORDER BY ({options['sort_row']['row']} DESC); 
+            PRIMARY KEY (({",".join(options['partition_rows']['rows'])}), {",".join(options['sort_row']['rows'])})
+        ) WITH CLUSTERING ORDER BY ({",".join(f"{x} DESC" for x in options['sort_row']['rows'])}); 
     """
     try:
         session.execute(query_create_taula)
-        print("Taula creada o ja existent.")
     except Exception as e:
-        print(f"Error creant la taula: {e}")
 
 
 def save_to_cassandra(documents, table_name, cassandra_connection, options):
     session = get_session(cassandra_connection)
     __create_table__(session, table_name, options)
-    rows_keys = ",".join(options['partition_rows']['rows']+[options['sort_row']['row'], "info"])
-    rows_values = ",".join(["?" for _ in options['partition_rows']['rows']+[options['sort_row']['row'], "info"]])
+    key_columns = [k for k, v in options['columns']]
+    table_columns = options['partition_rows']['rows'] + options['sort_row']['rows'] + key_columns
+    keys_query = ",".join(table_columns)
+    rows_values = ",".join(["?" for _ in table_columns])
     insert_query = f"""
         INSERT INTO {table_name} 
-            ({rows_keys}) 
+            ({keys_query}) 
         VALUES ({rows_values})
     """
     docs = []
     for doc in documents:
-        keys = options['partition_rows']['rows'] + [options['sort_row']['row']]
+        keys = options['partition_rows']['rows'] + options['sort_row']['rows']
+        col_map = options['columns']
         l = []
         for key in keys:
             l.append(doc.pop(key))
-        l.append(doc)
+        for col, fields in col_map.items():
+            col_value = {}
+            for field in fields:
+                if field == 'all':
+                    col_value = doc
+                    break
+                else:
+                    if field in doc:
+                        col_value[field] = doc[field]
+            l.append(col_value)
         docs.append(tuple(l))
     try:
         insert_q = session.prepare(insert_query)
@@ -74,6 +85,7 @@ def save_to_cassandra(documents, table_name, cassandra_connection, options):
                 print("Error en una inserció:", result)
     except Exception as e:
         print(f"Error creant la taula: {e}")
+
 
 
 def __parse_query_parameters__(parameter):
