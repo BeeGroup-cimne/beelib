@@ -2,7 +2,7 @@ from cassandra.auth import PlainTextAuthProvider
 from cassandra.cluster import Cluster
 from cassandra.concurrent import execute_concurrent_with_args
 from cassandra.query import SimpleStatement
-
+import datetime
 
 def get_session(cassandra_connection):
     auth_provider = PlainTextAuthProvider(username=cassandra_connection['auth']['username'], password=cassandra_connection['auth']['password'])
@@ -45,7 +45,7 @@ def __create_table__(session, table_name, options):
     try:
         session.execute(query_create_taula)
     except Exception as e:
-
+        print(f"Error creant la taula: {e}")
 
 def save_to_cassandra(documents, table_name, cassandra_connection, options):
     session = get_session(cassandra_connection)
