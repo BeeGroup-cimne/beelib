@@ -1,18 +1,7 @@
-import uuid
-
 from cassandra.auth import PlainTextAuthProvider
 from cassandra.cluster import Cluster
-import re
-
 from cassandra.concurrent import execute_concurrent_with_args
 from cassandra.query import SimpleStatement
-
-
-# table_name = "modbus.timeseries_id_"
-# options = {'partition_rows': {'rows': ['uri', 'year'], 'types': ['text', 'int']},"sort_row":{"row": "timestamp","type": "timestamp"}}
-#cassandra_connection = {"auth": {'username': 'cassandra', 'password': 'trPQoVfVvn3W1R-v_cdgHuIPnxeaHa0hJ1KHdNxJBCpOMKiJ1AUYsg%'},
-#                        "connection": {"contact_points": ['127.0.0.1'], "port": 9042}}
-
 
 def get_session(cassandra_connection):
     auth_provider = PlainTextAuthProvider(username=cassandra_connection['auth']['username'], password=cassandra_connection['auth']['password'])
