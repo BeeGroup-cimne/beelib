@@ -6,3 +6,4 @@ from . import beetransformation
 from . import beedruid
 from . import beerdf
 from . import beeinflux
+from . import beecassandra
