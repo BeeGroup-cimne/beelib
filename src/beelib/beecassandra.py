@@ -150,7 +150,7 @@ def get_cassandra_data(table_name, fix_key, start_key, end_key, sort_key_start, 
                 d = row._asdict()
                 info = d.pop("info")
                 d.update(info)
-                current_batch.append(row)
+                current_batch.append(d)
                 if len(current_batch) == batch_size:
                     yield current_batch
                     current_batch = []
