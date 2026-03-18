@@ -7,7 +7,8 @@ import datetime
 def get_session(cassandra_connection):
     auth_provider = PlainTextAuthProvider(username=cassandra_connection['auth']['username'], password=cassandra_connection['auth']['password'])
     cluster = Cluster(cassandra_connection['connection']['contact_points'], port=cassandra_connection['connection']['port'], auth_provider=auth_provider, connect_timeout=10)
-    return cluster.connect()
+    session = cluster.connect()
+    return session, cluster
 
 
 def __create_table__(session, table_name, options):
@@ -48,8 +49,7 @@ def __create_table__(session, table_name, options):
         print(f"Error creant la taula: {e}")
 
 
-def save_to_cassandra(documents, table_name, cassandra_connection, options):
-    session = get_session(cassandra_connection)
+def save_to_cassandra(documents, table_name, session, options):
     __create_table__(session, table_name, options)
     key_columns = [k for k, _ in options['columns'].items()]
     table_columns = options['partition_rows']['rows'] + options['sort_row']['rows'] + key_columns
@@ -100,7 +100,7 @@ def __parse_query_parameters__(parameter):
         raise TypeError(f"Parameter type '{type(parameter)}' is not supported")
 
 
-def get_cassandra_data(table_name, fix_key, start_key, end_key, sort_key_start, sort_key_end, cassandra_connection, batch_size=10000):
+def get_cassandra_data(table_name, fix_key, start_key, end_key, sort_key_start, sort_key_end, session, batch_size=10000):
     """
     :param table_name:
     :param fix_key: {"key1": ("val", str), "key2": ("val2", int), "key3": ("val3", str)}
@@ -112,7 +112,6 @@ def get_cassandra_data(table_name, fix_key, start_key, end_key, sort_key_start, 
     :param options:
     :return:
     """
-    session = get_session(cassandra_connection)
     requests_db = []
     if start_key and end_key:
         k, sv = list(start_key.items())[0]
@@ -159,7 +158,6 @@ def get_cassandra_data(table_name, fix_key, start_key, end_key, sort_key_start, 
                 result_set = session.execute(statement, paging_state=punter)
             else:
                 break
-    session.shutdown()
     if current_batch:
         yield current_batch
 
