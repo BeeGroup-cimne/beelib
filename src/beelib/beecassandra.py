@@ -17,7 +17,8 @@ def get_session(cassandra_connection):
                           local_dc=cassandra_connection['connection']['local_dc']),
                       port=cassandra_connection['connection']['port'],
                       auth_provider=auth_provider,
-                      connect_timeout=10)
+                      connect_timeout=10,
+                      protocol_version=5)
     session = cluster.connect()
     return session, cluster
 
