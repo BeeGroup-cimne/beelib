@@ -1,12 +1,23 @@
 from cassandra.auth import PlainTextAuthProvider
 from cassandra.cluster import Cluster
 from cassandra.concurrent import execute_concurrent_with_args
+from cassandra.policies import DCAwareRoundRobinPolicy
 from cassandra.query import SimpleStatement
 import datetime
 
+
 def get_session(cassandra_connection):
-    auth_provider = PlainTextAuthProvider(username=cassandra_connection['auth']['username'], password=cassandra_connection['auth']['password'])
-    cluster = Cluster(cassandra_connection['connection']['contact_points'], port=cassandra_connection['connection']['port'], auth_provider=auth_provider, connect_timeout=10)
+    if cassandra_connection['auth']['active'] == "true":
+        auth_provider = PlainTextAuthProvider(username=cassandra_connection['auth']['username'],
+                                              password=cassandra_connection['auth']['password'])
+    else:
+        auth_provider = None
+    cluster = Cluster(cassandra_connection['connection']['contact_points'],
+                      load_balancing_policy=DCAwareRoundRobinPolicy(
+                          local_dc=cassandra_connection['connection']['local_dc']),
+                      port=cassandra_connection['connection']['port'],
+                      auth_provider=auth_provider,
+                      connect_timeout=10)
     session = cluster.connect()
     return session, cluster
 
