@@ -25,7 +25,8 @@ dependencies = [
     'pandas',
     'isodate',
     'influxdb-client',
-    'cassandra-driver'
+    'cassandra-driver',
+    'confluent-kafka'
 ]
 
 [project.urls]
