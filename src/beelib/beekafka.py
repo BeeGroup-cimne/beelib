@@ -8,6 +8,7 @@ import pickle
 import sys
 import warnings
 
+
 class BeeMessage:
     topic = None
     partition = None
@@ -73,6 +74,12 @@ class BeeProducer(BeeKafka):
         if timestamp_ms:
             kwargs["timestamp"] = timestamp_ms
         self.producer.produce(topic, **kwargs)
+
+    def flush(self):
+        self.producer.flush()
+
+    def close(self):
+        self.flush()
 
 
 class BeeConsumer(BeeKafka):
