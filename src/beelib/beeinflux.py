@@ -23,7 +23,7 @@ def run_query(influx_connection, query):
     return query_api.query_data_frame(query)
 
 
-def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end):
+def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end, diff="final"):
     aggregation_window = int(isodate.parse_duration(freq).total_seconds() * 10**9)
     start = int(ts_ini.timestamp()) * 10**9
     end = int(ts_end.timestamp()) * 10**9
@@ -34,6 +34,7 @@ def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end):
         |> filter(fn: (r) => r["hash"] == "{d_hash}")
         |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
         |> filter(fn: (r) => r["is_null"]==0.0)
+        |> filter(fn: (r) => r["run_status"]==diff)
         |> keep(columns: ["_time", "value", "end", "isReal"])
     """
     client = connect_influx(influx_connection)
