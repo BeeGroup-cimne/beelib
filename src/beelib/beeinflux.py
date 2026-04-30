@@ -34,7 +34,7 @@ def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end, diff
         |> filter(fn: (r) => r["hash"] == "{d_hash}")
         |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
         |> filter(fn: (r) => r["is_null"]==0.0)
-        |> filter(fn: (r) => r["run_status"]==diff)
+        |> filter(fn: (r) => r["run_status"]=="{diff}")
         |> keep(columns: ["_time", "value", "end", "isReal"])
     """
     client = connect_influx(influx_connection)
