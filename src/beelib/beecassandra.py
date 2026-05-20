@@ -1,7 +1,7 @@
 from cassandra.auth import PlainTextAuthProvider
 from cassandra.cluster import Cluster
 from cassandra.concurrent import execute_concurrent_with_args
-from cassandra.policies import DCAwareRoundRobinPolicy
+from cassandra.policies import DCAwareRoundRobinPolicy, ExponentialReconnectionPolicy
 from cassandra.query import SimpleStatement
 import datetime
 
@@ -22,7 +22,8 @@ def get_session(cassandra_connection):
         port=cassandra_connection['connection']['port'],
         auth_provider=auth_provider,
         connect_timeout=10,
-        protocol_version=5
+        protocol_version=5,
+        reconnection_policy=ExponentialReconnectionPolicy(base_delay=1, max_delay=15),
     )
     session = cluster.connect()
     return session, cluster
@@ -161,11 +162,11 @@ def get_cassandra_data(
         curr_req[k] = {"v": ev}
         requests_db.append(curr_req)
         requests_db[0].update({
-            f"__sort_{k}_start": {"v": v, "op": ">", "col": k}
+            f"__sort_{k}_start": {"v": v, "op": ">=", "col": k}
             for k, v in sort_key_start.items()
         })
         requests_db[-1].update({
-            f"__sort_{k}_end": {"v": v, "op": "<", "col": k}
+            f"__sort_{k}_end": {"v": v, "op": "<=", "col": k}
             for k, v in sort_key_end.items()
         })
     else:
@@ -176,7 +177,7 @@ def get_cassandra_data(
     for req in requests_db:
         if req:
             conditions = [
-                f"{v.get('col', k)}{v['op'] if 'op' in v else '='}{__parse_query_parameters__(v['v'])}"
+                f"{v.get('col', k)} {v['op'] if 'op' in v else '='} {__parse_query_parameters__(v['v'])}"
                 for k, v in req.items()
             ]
             query = f"SELECT * FROM {table_name} WHERE {' AND '.join(conditions)};"
