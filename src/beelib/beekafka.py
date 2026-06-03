@@ -75,6 +75,15 @@ class BeeProducer(BeeKafka):
             kwargs["timestamp"] = timestamp_ms
         self.producer.produce(topic, **kwargs)
 
+    def partitions_for(self, topic, timeout=5.0):
+        cluster_metadata = self.producer.list_topics(topic=topic, timeout=timeout)
+        topic_metadata = cluster_metadata.topics.get(topic)
+
+        if topic_metadata is not None and topic_metadata.error is None:
+            return set(topic_metadata.partitions.keys())
+
+        return None
+
     def flush(self):
         self.producer.flush()
 
