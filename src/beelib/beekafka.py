@@ -5,8 +5,11 @@ from typing import Any
 from confluent_kafka import Consumer, KafkaError, KafkaException, Producer
 from base64 import b64encode, b64decode
 import pickle
-import sys
 import warnings
+
+
+class KafkaDeliveryError(Exception):
+    pass
 
 
 class BeeMessage:
@@ -73,7 +76,21 @@ class BeeProducer(BeeKafka):
             kwargs["partition"] = partition
         if timestamp_ms:
             kwargs["timestamp"] = timestamp_ms
-        self.producer.produce(topic, **kwargs)
+        while True:
+            try:
+                self.producer.produce(topic, callback=self._delivery_report, **kwargs)
+                break
+            except BufferError:
+                # local queue is full: wait for the broker to ack pending messages
+                # instead of dropping this one
+                self.producer.poll(0.5)
+        # serve any pending delivery report callbacks without blocking
+        self.producer.poll(0)
+
+    @staticmethod
+    def _delivery_report(err, msg):
+        if err is not None:
+            raise KafkaDeliveryError(f"Message delivery failed on topic {msg.topic()}: {err}")
 
     def partitions_for(self, topic, timeout=5.0):
         cluster_metadata = self.producer.list_topics(topic=topic, timeout=timeout)
@@ -185,14 +202,11 @@ def create_kafka_consumer(kafka_conf, encoding="JSON", **kwargs):
 
 
 def send_to_kafka(producer, topic, key, data, **kwargs):
-    try:
-        kafka_message = {
-            "data": data
-        }
-        kafka_message.update(kwargs)
-        if key:
-            producer.send(topic, key=key.encode('utf-8'), value=kafka_message)
-        else:
-            producer.send(topic, value=kafka_message)
-    except Exception as e:
-        print(e, file=sys.stderr)
+    kafka_message = {
+        "data": data
+    }
+    kafka_message.update(kwargs)
+    if key:
+        producer.send(topic, key=key.encode('utf-8'), value=kafka_message)
+    else:
+        producer.send(topic, value=kafka_message)
