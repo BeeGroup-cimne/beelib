@@ -1,6 +1,7 @@
-from neo4j import GraphDatabase
 from rdflib import graph, RDF
 import rdflib
+
+from beelib.beeneo4j import connect_neo4j
 
 
 def __get_namespaced_fields__(field, context):
@@ -71,7 +72,7 @@ def create_rdf_from_neo4j(neo4j_graph, context):
 
 
 def get_rdf_with_cyper_query(query, connection):
-    driver = GraphDatabase.driver(**connection)
+    driver = connect_neo4j(connection)
     with driver.session() as session:
         users = session.run(
             query

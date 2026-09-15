@@ -7,6 +7,10 @@ from base64 import b64encode, b64decode
 import pickle
 import warnings
 
+from beelib.beeretry import retry_with_backoff
+
+KAFKA_TRANSIENT_EXCEPTIONS = (KafkaException,)
+
 
 class KafkaDeliveryError(Exception):
     pass
@@ -61,6 +65,10 @@ class BeeProducer(BeeKafka):
         key_serializer = kwargs.pop('key_serializer', None)
         super().__init__(kafka_conf, **kwargs)
         self.producer = Producer(self.kafka_conf)
+        # Producer() es lazy (no connecta al broker fins al primer send/flush),
+        # aixi que sense aquest check un tall de xarxa no es detectaria fins la
+        # primera crida real -- massa tard per beneficiar-se aqui del retry.
+        retry_with_backoff(self.producer.list_topics, timeout=10, exceptions=KAFKA_TRANSIENT_EXCEPTIONS)
         self.value_serializer = value_serializer if value_serializer else self.__plain_decoder_encoder__
         self.key_serializer = key_serializer if key_serializer else self.__plain_decoder_encoder__
 
@@ -116,6 +124,10 @@ class BeeConsumer(BeeKafka):
         self.refresh_ms = self.kafka_conf['topic.metadata.refresh.interval.ms'] \
             if 'topic.metadata.refresh.interval.ms' in self.kafka_conf else 30
         self.consumer = Consumer(self.kafka_conf)
+        # Consumer() es lazy (no connecta al broker fins al primer poll/subscribe),
+        # aixi que sense aquest check un tall de xarxa no es detectaria fins la
+        # primera crida real -- massa tard per beneficiar-se aqui del retry.
+        retry_with_backoff(self.consumer.list_topics, timeout=10, exceptions=KAFKA_TRANSIENT_EXCEPTIONS)
         self.value_deserializer = value_deserializer if value_deserializer else self.__plain_decoder_encoder__
         self.key_deserializer = key_deserializer if key_deserializer else self.__plain_decoder_encoder__
         self.pattern = None

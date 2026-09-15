@@ -2,10 +2,11 @@ import hashlib
 import tempfile
 from urllib.parse import quote
 
-from neo4j import GraphDatabase
 import json
 import morph_kgc
 import os
+
+from beelib.beeneo4j import connect_neo4j
 
 
 def __map_to_ttl__(data, mapping_file):
@@ -36,7 +37,7 @@ def map_and_print(data, mapping_file, config):
 
 def save_to_neo4j(g, config):
     content = __transform_to_str__(g)
-    neo = GraphDatabase.driver(**config['neo4j'])
+    neo = connect_neo4j(config['neo4j'])
     with neo.session() as s:
         response = s.run(f"""CALL n10s.rdf.import.inline('{content}','Turtle')""")
         print(response.single())

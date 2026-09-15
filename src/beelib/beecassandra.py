@@ -1,9 +1,17 @@
 from cassandra.auth import PlainTextAuthProvider
-from cassandra.cluster import Cluster
+from cassandra.cluster import Cluster, NoHostAvailable
 from cassandra.concurrent import execute_concurrent_with_args
 from cassandra.policies import DCAwareRoundRobinPolicy, ExponentialReconnectionPolicy
 from cassandra.query import SimpleStatement
+from cassandra import OperationTimedOut, ReadTimeout, WriteTimeout
 import datetime
+
+from beelib.beeretry import retry_with_backoff
+
+# La politica de reconnexio del Cluster ja manté les connexions vives entre
+# nodes; aixo cobreix nomes el moment en que NO hi ha cap node disponible
+# (reinici/rotacio del cluster) en fer connect() o una query concreta.
+CASSANDRA_TRANSIENT_EXCEPTIONS = (NoHostAvailable, OperationTimedOut, ReadTimeout, WriteTimeout)
 
 
 def get_session(cassandra_connection):
@@ -25,7 +33,7 @@ def get_session(cassandra_connection):
         protocol_version=5,
         reconnection_policy=ExponentialReconnectionPolicy(base_delay=1, max_delay=15),
     )
-    session = cluster.connect()
+    session = retry_with_backoff(cluster.connect, exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS)
     return session, cluster
 
 
@@ -185,7 +193,7 @@ def get_cassandra_data(
             query = f"SELECT * FROM {table_name};"
 
         statement = SimpleStatement(query, fetch_size=batch_size)
-        result_set = session.execute(statement)
+        result_set = retry_with_backoff(session.execute, statement, exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS)
         while True:
             for row in result_set.current_rows:
                 d = row._asdict()
@@ -196,7 +204,8 @@ def get_cassandra_data(
                     yield current_batch
                     current_batch = []
             if result_set.paging_state:
-                result_set = session.execute(statement, paging_state=result_set.paging_state)
+                result_set = retry_with_backoff(session.execute, statement, paging_state=result_set.paging_state,
+                                                 exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS)
             else:
                 break
     if current_batch:
