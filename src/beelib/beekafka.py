@@ -60,7 +60,7 @@ class BeeKafka(object):
 
 class BeeProducer(BeeKafka):
 
-    def __init__(self, kafka_conf, **kwargs):
+    def __init__(self, kafka_conf, retry_kwargs=None, **kwargs):
         value_serializer = kwargs.pop('value_serializer', None)
         key_serializer = kwargs.pop('key_serializer', None)
         super().__init__(kafka_conf, **kwargs)
@@ -68,7 +68,11 @@ class BeeProducer(BeeKafka):
         # Producer() es lazy (no connecta al broker fins al primer send/flush),
         # aixi que sense aquest check un tall de xarxa no es detectaria fins la
         # primera crida real -- massa tard per beneficiar-se aqui del retry.
-        retry_with_backoff(self.producer.list_topics, timeout=10, exceptions=KAFKA_TRANSIENT_EXCEPTIONS)
+        # retry_kwargs es passa tal qual a retry_with_backoff (attempts, base_delay,
+        # max_delay, factor, jitter, on_retry); si no se'n passa cap s'apliquen
+        # els valors per defecte.
+        retry_with_backoff(self.producer.list_topics, timeout=10, exceptions=KAFKA_TRANSIENT_EXCEPTIONS,
+                            **(retry_kwargs or {}))
         self.value_serializer = value_serializer if value_serializer else self.__plain_decoder_encoder__
         self.key_serializer = key_serializer if key_serializer else self.__plain_decoder_encoder__
 
@@ -117,7 +121,7 @@ class BeeProducer(BeeKafka):
 
 
 class BeeConsumer(BeeKafka):
-    def __init__(self, kafka_conf, **kwargs):
+    def __init__(self, kafka_conf, retry_kwargs=None, **kwargs):
         value_deserializer = kwargs.pop('value_deserializer', None)
         key_deserializer = kwargs.pop('key_deserializer', None)
         super().__init__(kafka_conf, **kwargs)
@@ -127,7 +131,11 @@ class BeeConsumer(BeeKafka):
         # Consumer() es lazy (no connecta al broker fins al primer poll/subscribe),
         # aixi que sense aquest check un tall de xarxa no es detectaria fins la
         # primera crida real -- massa tard per beneficiar-se aqui del retry.
-        retry_with_backoff(self.consumer.list_topics, timeout=10, exceptions=KAFKA_TRANSIENT_EXCEPTIONS)
+        # retry_kwargs es passa tal qual a retry_with_backoff (attempts, base_delay,
+        # max_delay, factor, jitter, on_retry); si no se'n passa cap s'apliquen
+        # els valors per defecte.
+        retry_with_backoff(self.consumer.list_topics, timeout=10, exceptions=KAFKA_TRANSIENT_EXCEPTIONS,
+                            **(retry_kwargs or {}))
         self.value_deserializer = value_deserializer if value_deserializer else self.__plain_decoder_encoder__
         self.key_deserializer = key_deserializer if key_deserializer else self.__plain_decoder_encoder__
         self.pattern = None

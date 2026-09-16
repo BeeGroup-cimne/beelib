@@ -14,7 +14,11 @@ from beelib.beeretry import retry_with_backoff
 CASSANDRA_TRANSIENT_EXCEPTIONS = (NoHostAvailable, OperationTimedOut, ReadTimeout, WriteTimeout)
 
 
-def get_session(cassandra_connection):
+def get_session(cassandra_connection, **retry_kwargs):
+    """retry_kwargs es passa tal qual a retry_with_backoff (attempts,
+    base_delay, max_delay, factor, jitter, on_retry) per l'intent de connexio;
+    si no se'n passa cap s'apliquen els valors per defecte.
+    """
     if cassandra_connection['auth']['active'] == "true":
         auth_provider = PlainTextAuthProvider(
             username=cassandra_connection['auth']['username'],
@@ -33,7 +37,7 @@ def get_session(cassandra_connection):
         protocol_version=5,
         reconnection_policy=ExponentialReconnectionPolicy(base_delay=1, max_delay=15),
     )
-    session = retry_with_backoff(cluster.connect, exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS)
+    session = retry_with_backoff(cluster.connect, exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS, **retry_kwargs)
     return session, cluster
 
 
@@ -127,7 +131,7 @@ def __parse_query_parameters__(parameter):
 
 def get_cassandra_data(
         table_name, fix_key, start_key, end_key,
-        sort_key_start, sort_key_end, session, batch_size=10000):
+        sort_key_start, sort_key_end, session, batch_size=10000, **retry_kwargs):
     """
     :param table_name: name of the Cassandra table
     :param fix_key: {"key1": "val", "key2": 2} - partition key fields with fixed values
@@ -137,6 +141,9 @@ def get_cassandra_data(
     :param sort_key_end: {"ts": 1234567890} - clustering key upper bound (int or datetime)
     :param session: Cassandra session
     :param batch_size: number of rows per batch (default 10000)
+    :param retry_kwargs: passed as-is to retry_with_backoff (attempts, base_delay,
+        max_delay, factor, jitter, on_retry) for each page fetched; defaults apply
+        if none are given
     :return: generator of row batches (list of dicts)
     """
     if bool(start_key) != bool(end_key):
@@ -193,7 +200,8 @@ def get_cassandra_data(
             query = f"SELECT * FROM {table_name};"
 
         statement = SimpleStatement(query, fetch_size=batch_size)
-        result_set = retry_with_backoff(session.execute, statement, exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS)
+        result_set = retry_with_backoff(session.execute, statement, exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS,
+                                         **retry_kwargs)
         while True:
             for row in result_set.current_rows:
                 d = row._asdict()
@@ -205,7 +213,7 @@ def get_cassandra_data(
                     current_batch = []
             if result_set.paging_state:
                 result_set = retry_with_backoff(session.execute, statement, paging_state=result_set.paging_state,
-                                                 exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS)
+                                                 exceptions=CASSANDRA_TRANSIENT_EXCEPTIONS, **retry_kwargs)
             else:
                 break
     if current_batch:

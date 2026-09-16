@@ -8,7 +8,7 @@ from beelib.beeretry import retry_with_backoff, RetryingProxy
 REDIS_TRANSIENT_EXCEPTIONS = (_redis.exceptions.ConnectionError, _redis.exceptions.TimeoutError)
 
 
-def connect_redis(cfg: dict) -> _redis.Redis:
+def connect_redis(cfg: dict, **retry_kwargs) -> _redis.Redis:
     """Connecta a Redis (client directe, o via Sentinel si cfg['connection']
     conte 'sentinels'), verifica la connexio amb un ping reintentat, i
     retorna un client on QUALSEVOL comanda (lpush, brpop, setnx...) reintenta
@@ -18,6 +18,10 @@ def connect_redis(cfg: dict) -> _redis.Redis:
     El client de redis-py es lazy (no connecta de veritat fins al primer
     command), aixi que sense el ping inicial un tall de xarxa o un failover no
     es detectaria fins la primera crida real feta pel codi cridant.
+
+    retry_kwargs es passa tal qual a retry_with_backoff (attempts, base_delay,
+    max_delay, factor, jitter, on_retry); si no se'n passa cap s'apliquen els
+    valors per defecte.
     """
     sentinel_cfg = cfg.get('connection', {})
     if 'sentinels' in sentinel_cfg:
@@ -27,5 +31,5 @@ def connect_redis(cfg: dict) -> _redis.Redis:
         conn = sentinel.master_for(cfg['master_name'], **conn_kwargs)
     else:
         conn = _redis.Redis(**cfg)
-    retry_with_backoff(conn.ping, exceptions=REDIS_TRANSIENT_EXCEPTIONS)
-    return RetryingProxy(conn, REDIS_TRANSIENT_EXCEPTIONS)
+    retry_with_backoff(conn.ping, exceptions=REDIS_TRANSIENT_EXCEPTIONS, **retry_kwargs)
+    return RetryingProxy(conn, REDIS_TRANSIENT_EXCEPTIONS, **retry_kwargs)

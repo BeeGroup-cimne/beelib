@@ -28,13 +28,18 @@ def connect_influx(influx_connection):
     return client
 
 
-def run_query(influx_connection, query):
+def run_query(influx_connection, query, **retry_kwargs):
+    """retry_kwargs es passa tal qual a retry_with_backoff (attempts, base_delay,
+    max_delay, factor, jitter, on_retry); si no se'n passa cap s'apliquen els
+    valors per defecte.
+    """
     client = connect_influx(influx_connection)
     query_api = client.query_api()
-    return retry_with_backoff(query_api.query_data_frame, query, exceptions=INFLUX_TRANSIENT_EXCEPTIONS)
+    return retry_with_backoff(query_api.query_data_frame, query, exceptions=INFLUX_TRANSIENT_EXCEPTIONS,
+                               **retry_kwargs)
 
 
-def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end, diff="final"):
+def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end, diff="final", **retry_kwargs):
     aggregation_window = int(isodate.parse_duration(freq).total_seconds() * 10**9)
     start = int(ts_ini.timestamp()) * 10**9
     end = int(ts_end.timestamp()) * 10**9
@@ -50,7 +55,8 @@ def get_timeseries_by_hash(d_hash, freq, influx_connection, ts_ini, ts_end, diff
     """
     client = connect_influx(influx_connection)
     query_api = client.query_api()
-    df = retry_with_backoff(query_api.query_data_frame, query, exceptions=INFLUX_TRANSIENT_EXCEPTIONS)
+    df = retry_with_backoff(query_api.query_data_frame, query, exceptions=INFLUX_TRANSIENT_EXCEPTIONS,
+                             **retry_kwargs)
     if df.empty:
         return pd.DataFrame()
     df['end'] = pd.to_datetime(df['end'], unit="s").dt.tz_localize("UTC")
