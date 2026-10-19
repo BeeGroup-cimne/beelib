@@ -1,7 +1,6 @@
 import importlib
 import pickle
 import pkgutil
-import warnings
 
 import beelib
 
@@ -10,10 +9,10 @@ MODULES = [m.name for m in pkgutil.iter_modules(beelib.__path__, "beelib.")]
 
 def test_all_modules_import():
     assert "beelib.beeredis" in MODULES and "beelib.beerest" in MODULES
-    with warnings.catch_warnings():
-        warnings.filterwarnings("error", category=DeprecationWarning, module=r"beelib\b")
-        for name in MODULES:
-            importlib.import_module(name)
+    # beelib's own DeprecationWarnings are errors via pyproject's filterwarnings,
+    # which also covers the eager imports in beelib/__init__ at collection time
+    for name in MODULES:
+        importlib.import_module(name)
 
 
 def test_cassandra_has_reactor():

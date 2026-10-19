@@ -39,3 +39,6 @@ dependencies = [
 [project.urls]
 Homepage = "https://correu.cimne.upc.edu"
 Issues = "https://correu.cimne.upc.edu"
+
+[tool.pytest.ini_options]
+filterwarnings = ["error::DeprecationWarning:beelib"]
