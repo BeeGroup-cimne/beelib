@@ -5,6 +5,8 @@ as connecting to ENMA databases, transforming data to knowledge graph in RDF and
 
 # installation
 
+Supported Python versions: 3.10–3.14. Python 3.15 is tested in CI but not yet supported, because `happybase` (thriftpy2), `cassandra-driver`, `confluent-kafka` and `pandas<3` (via `morph_kgc`) don't publish 3.15 wheels yet.
+
 The best way to install the package is using the github repository, where we can choose the version, 
 or get the last one 
 
