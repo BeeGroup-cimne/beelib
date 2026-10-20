@@ -5,20 +5,14 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-        include:
-          # ponytail: 3.15 non-blocking until thriftpy2/cassandra-driver/confluent-kafka/pandas<3 ship wheels
-          - python-version: "3.15"
-            experimental: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
       - run: pip install . pytest
       - run: pytest tests -v
