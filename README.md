@@ -5,6 +5,8 @@ as connecting to ENMA databases, transforming data to knowledge graph in RDF and
 
 # installation
 
+Supported Python versions: 3.10–3.14.
+
 The best way to install the package is using the github repository, where we can choose the version, 
 or get the last one 
 
