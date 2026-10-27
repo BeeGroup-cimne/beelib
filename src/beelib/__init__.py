@@ -1,6 +1,7 @@
 from . import beeconfig
 from . import beehbase
 from . import beekafka
+from . import beeheartbeat
 from . import beesecurity
 from . import beetransformation
 from . import beedruid

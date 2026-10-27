@@ -7,6 +7,7 @@ from base64 import b64encode, b64decode
 import pickle
 import warnings
 
+from beelib import beeheartbeat
 from beelib.beeretry import retry_with_backoff
 
 KAFKA_TRANSIENT_EXCEPTIONS = (KafkaException,)
@@ -167,6 +168,9 @@ class BeeConsumer(BeeKafka):
         while True:
             try:
                 msg = self.consumer.poll(timeout=1.0)
+                # Un cop per volta (tambe sense missatges): si el codi que consumeix l'iterador
+                # es penja, el generador no es reprèn i el heartbeat deixa d'actualitzar-se.
+                beeheartbeat.beat()
                 if msg:
                     if msg.error():
                         if msg.error().code() in (
