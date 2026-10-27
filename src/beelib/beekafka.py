@@ -126,6 +126,12 @@ class BeeConsumer(BeeKafka):
         value_deserializer = kwargs.pop('value_deserializer', None)
         key_deserializer = kwargs.pop('key_deserializer', None)
         super().__init__(kafka_conf, **kwargs)
+        # L'offset nomes es "desa" (i per tant es commiteja) quan l'iterador es represa, es a dir
+        # un cop el codi que consumeix ha acabat amb el missatge. Amb el valor per defecte de
+        # librdkafka s'avanca al retornar el poll() i un kill durant el processat perd el missatge.
+        self.kafka_conf.setdefault('enable.auto.offset.store', False)
+        self._manual_store = self.kafka_conf['enable.auto.offset.store'] in (False, 'false')
+        self._stop = False
         self.refresh_ms = self.kafka_conf['topic.metadata.refresh.interval.ms'] \
             if 'topic.metadata.refresh.interval.ms' in self.kafka_conf else 30
         self.consumer = Consumer(self.kafka_conf)
@@ -165,7 +171,7 @@ class BeeConsumer(BeeKafka):
         if not self.topics and not self.pattern:
             raise Exception("No topics or pattern specified")
         last_refresh = 0
-        while True:
+        while not self._stop:
             try:
                 msg = self.consumer.poll(timeout=1.0)
                 # Un cop per volta (tambe sense missatges): si el codi que consumeix l'iterador
@@ -193,12 +199,23 @@ class BeeConsumer(BeeKafka):
                     ret.latency = msg.latency()
                     ret.leader_epoch = msg.leader_epoch()
                     yield ret
+                    # Arribem aqui quan el consumidor demana el seguent missatge: l'anterior ja s'ha processat.
+                    if self._manual_store:
+                        self.consumer.store_offsets(message=msg)
 
                 if self.pattern and time.time() - last_refresh > self.refresh_ms:
                     self.__subscribe_with_pattern__()
                     last_refresh = time.time()
             except Exception as e:
                 warnings.warn(f"Fatal Error: {e}")
+
+    def stop(self):
+        """Fa que l'iterador acabi despres del missatge actual. Segur des d'un handler de senyal."""
+        self._stop = True
+
+    def close(self):
+        """Commiteja els offsets desats i abandona el grup de consumers."""
+        self.consumer.close()
 
 
 def create_kafka_producer(kafka_conf, encoding="JSON", **kwargs):
