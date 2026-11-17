@@ -85,7 +85,7 @@ class BeeProducer(BeeKafka):
             "value": v,
             "headers": headers,
         }
-        if partition:
+        if partition is not None:       # la partició 0 també és vàlida (no és falsy)
             kwargs["partition"] = partition
         if timestamp_ms:
             kwargs["timestamp"] = timestamp_ms
@@ -242,10 +242,30 @@ def create_kafka_consumer(kafka_conf, encoding="JSON", **kwargs):
     return BeeConsumer(kafka_conf, value_deserializer=decoder, **kwargs)
 
 
-def send_to_kafka(producer, topic, key, data, **kwargs):
+RESERVED_DATA_KEYS = ("buckets",)       # camps del missatge (no de les files): no poden ser claus de les dades
+
+
+def send_to_kafka(producer, topic, key, data, buckets=None, **kwargs):
+    """Envia `data` a `topic` amb el format de `raw_store` (`tables`, `row_keys`... van a `kwargs`).
+
+    `buckets` (opcional) és el nombre de particions d'una taula estàtica de `raw_store` (`pk = md5(id) % buckets`). Va al
+    missatge com un camp propi, no dins les files: per això `buckets` és un nom reservat i una fila que el porti com a clau
+    és un error (ValueError), igual que un valor que no sigui un enter positiu.
+    """
+    if buckets is not None:
+        if not isinstance(buckets, int) or isinstance(buckets, bool) or buckets <= 0:
+            raise ValueError(f"'buckets' must be a positive integer, got {buckets!r}")
+    if isinstance(data, (list, tuple)):         # no es recorre res que es pugui consumir (un generador)
+        for row in data:
+            if isinstance(row, dict):
+                reserved = [k for k in RESERVED_DATA_KEYS if k in row]
+                if reserved:
+                    raise ValueError(f"{reserved} is a reserved name of the message, it cannot be a key of the data")
     kafka_message = {
         "data": data
     }
+    if buckets is not None:
+        kafka_message["buckets"] = buckets
     kafka_message.update(kwargs)
     if key:
         producer.send(topic, key=key.encode('utf-8'), value=kafka_message)
