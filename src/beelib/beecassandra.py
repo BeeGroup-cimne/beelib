@@ -55,7 +55,8 @@ def __create_table__(session, table_name, options):
                     },
                     'columns': {
                         'column_name': ['column', 'column', 'all'],
-                    }
+                    },
+                    'comment': 'text opcional que es desa al comentari de la taula'
                 }
     """
     row_def = options['partition_rows']['rows'] + options['sort_row']['rows']
@@ -66,12 +67,16 @@ def __create_table__(session, table_name, options):
     partition_keys = ",".join(options['partition_rows']['rows'])
     sort_keys = ",".join(options['sort_row']['rows'])
     clustering_order = ",".join(f"{x} DESC" for x in options['sort_row']['rows'])
+    comment = ""
+    if options.get('comment'):
+        escaped = options['comment'].replace("'", "''")        # CQL escapa la cometa simple duplicant-la
+        comment = f" AND comment = '{escaped}'"
     query_create_taula = f"""
         CREATE TABLE IF NOT EXISTS {table_name}(
             {rows},
             {columns},
             PRIMARY KEY (({partition_keys}), {sort_keys})
-        ) WITH CLUSTERING ORDER BY ({clustering_order});
+        ) WITH CLUSTERING ORDER BY ({clustering_order}){comment};
     """
     try:
         session.execute(query_create_taula)
